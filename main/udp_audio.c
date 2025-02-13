@@ -13,10 +13,9 @@
 #include "driver/i2s.h"
 #include "esp_netif.h"
 
-#define AP_SSID "ESP32-AUDIO"
-#define AP_PASS "12345678"
+#define SSID "ESP32-CAM Access Point"
+#define PASS "123456789"
 #define UDP_PORT 12345
-#define MAX_STA_CONN 2
 #define BUFFER_SIZE 1024
 
 static const char *TAG = "UDP_SERVER";
@@ -48,29 +47,29 @@ void configure_i2s(void) {
     ESP_ERROR_CHECK(i2s_set_pin(I2S_NUM_0, &pin_config));
 }
 
-void wifi_init_softap(void) {
+void wifi_init_sta(void) {
     ESP_ERROR_CHECK(esp_netif_init());
     ESP_ERROR_CHECK(esp_event_loop_create_default());
-    esp_netif_create_default_wifi_ap();
+    
+    esp_netif_create_default_wifi_sta();
 
     wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
     ESP_ERROR_CHECK(esp_wifi_init(&cfg));
 
     wifi_config_t wifi_config = {
-        .ap = {
-            .ssid = AP_SSID,
-            .ssid_len = strlen(AP_SSID),
-            .password = AP_PASS,
-            .max_connection = MAX_STA_CONN,
-            .authmode = WIFI_AUTH_WPA_WPA2_PSK
+        .sta = {
+            .ssid = SSID,
+            .password = PASS,
+            .threshold.authmode = WIFI_AUTH_WPA_WPA2_PSK
         },
     };
 
-    ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_AP));
-    ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_AP, &wifi_config));
+    ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
+    ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config));
     ESP_ERROR_CHECK(esp_wifi_start());
-
-    ESP_LOGI(TAG, "WiFi AP started. SSID:%s password:%s", AP_SSID, AP_PASS);
+    
+    ESP_LOGI(TAG, "Connecting to WiFi SSID:%s", SSID);
+    ESP_ERROR_CHECK(esp_wifi_connect());
 }
 
 void udp_server_task(void *pvParameters) {
@@ -78,7 +77,7 @@ void udp_server_task(void *pvParameters) {
     struct sockaddr_in server_addr, client_addr;
     socklen_t socklen = sizeof(client_addr);
     
-    server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+    server_addr.sin_addr.s_addr = inet_addr("192.168.10.1");
     server_addr.sin_family = AF_INET;
     server_addr.sin_port = htons(UDP_PORT);
 
@@ -95,7 +94,7 @@ void udp_server_task(void *pvParameters) {
         goto CLEAN_UP;
     }
 
-    ESP_LOGI(TAG, "UDP server running on port %d", UDP_PORT);
+    ESP_LOGI(TAG, "UDP server running on IP: %s and port %d", "192.168.10.1", UDP_PORT);
 
     while (1) {
         int len = recvfrom(udp_socket, rx_buffer, sizeof(rx_buffer) - 1, 0, 
@@ -125,6 +124,10 @@ CLEAN_UP:
 void app_main(void) {
     ESP_ERROR_CHECK(nvs_flash_init());
     configure_i2s();
-    wifi_init_softap();
+    wifi_init_sta();
+    
+    // Wait for WiFi to connect before starting the UDP server
+    vTaskDelay(pdMS_TO_TICKS(5000)); // Delay for connection stability
+    
     xTaskCreate(udp_server_task, "udp_server", 4096, NULL, 5, NULL);
 }
