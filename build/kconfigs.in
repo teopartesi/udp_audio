@@ -54,3 +54,6 @@ source "C:/Users/teopa/Espressif/frameworks/esp-idf-v4.4.4/components/vfs/Kconfi
 source "C:/Users/teopa/Espressif/frameworks/esp-idf-v4.4.4/components/wear_levelling/Kconfig"
 source "C:/Users/teopa/Espressif/frameworks/esp-idf-v4.4.4/components/wifi_provisioning/Kconfig"
 source "C:/Users/teopa/Espressif/frameworks/esp-idf-v4.4.4/components/wpa_supplicant/Kconfig"
+source "C:/Users/teopa/esp/esp-adf/components/dueros_service/Kconfig"
+source "C:/Users/teopa/esp/esp-adf/components/esp_codec_dev/Kconfig"
+source "C:/Users/teopa/esp32/udp_audio/managed_components/espressif__esp-dsp/Kconfig"
